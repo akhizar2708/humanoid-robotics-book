@@ -93,18 +93,19 @@ const config = {
                 label: 'Module 1: The Robotic Nervous System',
                 to: '/module-1/chapter-1',
               },
-              {
-                label: 'Module 2: Perception and Computer Vision',
-                to: '/module-2',
-              },
-              {
-                label: 'Module 3: Motion Planning and Control',
-                to: '/module-3',
-              },
-              {
-                label: 'Module 4: Integration and Deployment',
-                to: '/module-4',
-              },
+              // Uncomment when modules are ready
+              // {
+              //   label: 'Module 2: Perception and Computer Vision',
+              //   to: '/module-2',
+              // },
+              // {
+              //   label: 'Module 3: Motion Planning and Control',
+              //   to: '/module-3',
+              // },
+              // {
+              //   label: 'Module 4: Integration and Deployment',
+              //   to: '/module-4',
+              // },
             ],
           },
           {
