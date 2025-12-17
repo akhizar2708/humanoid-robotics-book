@@ -1,0 +1,10 @@
+{
+  "label": "Module 4: Integration and Deployment",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Learn how to integrate AI models with robotic systems and deploy complete humanoid robot applications. Covers system integration, testing, and real-world deployment strategies."
+  },
+  "collapsible": true,
+  "collapsed": true
+}

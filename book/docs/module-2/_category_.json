@@ -1,0 +1,10 @@
+{
+  "label": "Module 2: Perception and Computer Vision",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Master computer vision techniques for humanoid robots. Learn how robots perceive their environment using cameras, depth sensors, and AI-powered object detection and recognition systems."
+  },
+  "collapsible": true,
+  "collapsed": true
+}

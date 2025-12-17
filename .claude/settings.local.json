@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -ExecutionPolicy Bypass -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -RequireTasks -IncludeTasks)",
+      "Bash(if [ -d \"C:\\Users\\Administrator\\Desktop\\hackathon\\specs\\001-docusaurus-infrastructure\\checklists\" ])",
+      "Bash(then find \"C:\\Users\\Administrator\\Desktop\\hackathon\\specs\\001-docusaurus-infrastructure\\checklists\" -name \"*.md\" -type f)",
+      "Bash(else echo \"No checklists directory found\")",
+      "Bash(fi)",
+      "Bash(git rev-parse:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

@@ -1,0 +1,333 @@
+openapi: 3.0.3
+info:
+  title: RAG Query API
+  description: |-
+    API for querying the technical book content using Retrieval-Augmented Generation (RAG).
+
+    Supports two query modes:
+    - **Global**: Search across entire book content
+    - **Selected**: Search only within user-selected text
+
+    All responses are grounded in retrieved book sections with explicit citations.
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://github.com/your-username/repo
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.your-domain.com
+    description: Production server
+
+tags:
+  - name: query
+    description: RAG query operations
+
+paths:
+  /api/v1/query:
+    post:
+      tags:
+        - query
+      summary: Query book content with RAG
+      description: |-
+        Submit a question about the book content. The system will:
+        1. Generate an embedding for the query
+        2. Retrieve relevant book sections (top-k chunks)
+        3. Generate an answer using retrieved context only
+        4. Return answer with section-level citations
+
+        If retrieved context is insufficient, returns explicit "I don't know" message.
+      operationId: queryBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+            examples:
+              globalQuery:
+                summary: Global query across entire book
+                value:
+                  query: "How do ROS 2 nodes communicate?"
+                  query_scope: "global"
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+                  top_k: 5
+              selectedTextQuery:
+                summary: Query scoped to selected text
+                value:
+                  query: "What does this mean?"
+                  query_scope: "selected"
+                  selected_text: "DDS (Data Distribution Service) is a middleware protocol..."
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+                  top_k: 3
+      responses:
+        '200':
+          description: Successful query response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+              examples:
+                successfulAnswer:
+                  summary: Answer with citations
+                  value:
+                    answer: "ROS 2 nodes communicate using three patterns: topics for publish-subscribe messaging, services for request-response interactions, and actions for long-running tasks with feedback [Module 1, Chapter 1]."
+                    citations:
+                      - section_title: "ROS 2 Fundamentals for Physical AI"
+                        module_id: "module-1"
+                        chapter_id: "chapter-1"
+                        page_url: "/module-1/chapter-1"
+                    retrieved_chunks:
+                      - chunk_id: "550e8400-e29b-41d4-a716-446655440001"
+                        score: 0.89
+                        content_preview: "ROS 2 nodes communicate using three patterns: topics for pub/sub, services for request-response, and actions for long-running tasks..."
+                      - chunk_id: "550e8400-e29b-41d4-a716-446655440002"
+                        score: 0.82
+                        content_preview: "Topics use publish-subscribe pattern where multiple nodes can publish and subscribe to the same topic..."
+                    confidence: 0.95
+                insufficientContext:
+                  summary: Insufficient information
+                  value:
+                    answer: "I don't have enough information in the book to answer this question accurately."
+                    citations: []
+                    retrieved_chunks: []
+                    confidence: 0.0
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingQuery:
+                  summary: Missing required field
+                  value:
+                    error:
+                      code: "INVALID_REQUEST"
+                      message: "Query text is required"
+                      details:
+                        field: "query"
+                        constraint: "required"
+                invalidScope:
+                  summary: Invalid query scope
+                  value:
+                    error:
+                      code: "INVALID_REQUEST"
+                      message: "query_scope must be 'global' or 'selected'"
+                      details:
+                        field: "query_scope"
+                        allowed_values: ["global", "selected"]
+                missingSelectedText:
+                  summary: Missing selected text for scoped query
+                  value:
+                    error:
+                      code: "INVALID_REQUEST"
+                      message: "selected_text is required when query_scope='selected'"
+                      details:
+                        field: "selected_text"
+                        constraint: "required_when:query_scope=selected"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "RATE_LIMIT_EXCEEDED"
+                  message: "OpenAI API rate limit exceeded. Please try again in 60 seconds."
+                  details:
+                    retry_after: 60
+                    limit_type: "embeddings"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                databaseError:
+                  summary: Database connection failed
+                  value:
+                    error:
+                      code: "DATABASE_ERROR"
+                      message: "Failed to connect to vector database"
+                      details:
+                        service: "qdrant"
+                openaiError:
+                  summary: OpenAI API error
+                  value:
+                    error:
+                      code: "EXTERNAL_API_ERROR"
+                      message: "OpenAI API request failed"
+                      details:
+                        service: "openai"
+                        error_type: "api_error"
+
+components:
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - query
+        - query_scope
+        - session_id
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: User's question about the book content
+          example: "What is ROS 2?"
+        query_scope:
+          type: string
+          enum: [global, selected]
+          description: |-
+            Query scope:
+            - `global`: Search across entire book
+            - `selected`: Search only within selected text
+          example: "global"
+        selected_text:
+          type: string
+          nullable: true
+          minLength: 10
+          maxLength: 5000
+          description: Selected text content (required if query_scope='selected')
+          example: "ROS 2 is a middleware framework for robotics applications..."
+        session_id:
+          type: string
+          format: uuid
+          description: Chat session identifier for conversation history
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+          description: Number of chunks to retrieve from vector database
+          example: 5
+
+    QueryResponse:
+      type: object
+      required:
+        - answer
+        - citations
+        - retrieved_chunks
+        - confidence
+      properties:
+        answer:
+          type: string
+          description: |-
+            Generated answer grounded in retrieved book content.
+
+            If insufficient context:
+            "I don't have enough information in the book to answer this question accurately."
+          example: "ROS 2 uses DDS (Data Distribution Service) middleware for inter-node communication [Module 1, Chapter 1]."
+        citations:
+          type: array
+          description: Section-level citations for answer verification
+          items:
+            $ref: '#/components/schemas/Citation'
+        retrieved_chunks:
+          type: array
+          description: Retrieved chunks with relevance scores (for transparency)
+          items:
+            $ref: '#/components/schemas/RetrievedChunk'
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: |-
+            Answer confidence score (0-1).
+
+            Calculated as: (sentences_grounded_in_context / total_sentences)
+
+            Low confidence (<0.7) triggers "I don't know" response.
+          example: 0.95
+
+    Citation:
+      type: object
+      required:
+        - section_title
+        - module_id
+        - chapter_id
+        - page_url
+      properties:
+        section_title:
+          type: string
+          description: Section heading from the book
+          example: "ROS 2 Fundamentals for Physical AI"
+        module_id:
+          type: string
+          description: Module identifier
+          example: "module-1"
+        chapter_id:
+          type: string
+          description: Chapter identifier
+          example: "chapter-1"
+        page_url:
+          type: string
+          description: Relative URL to Docusaurus page
+          example: "/module-1/chapter-1"
+
+    RetrievedChunk:
+      type: object
+      required:
+        - chunk_id
+        - score
+        - content_preview
+      properties:
+        chunk_id:
+          type: string
+          format: uuid
+          description: Unique chunk identifier
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Cosine similarity score (0-1, higher is better)
+          example: 0.89
+        content_preview:
+          type: string
+          description: First 200 characters of chunk content
+          example: "ROS 2 nodes communicate using three patterns: topics for pub/sub, services for request-response, and actions for long-running tasks. Topics use publish-subscribe pattern where..."
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              enum:
+                - INVALID_REQUEST
+                - RATE_LIMIT_EXCEEDED
+                - DATABASE_ERROR
+                - EXTERNAL_API_ERROR
+                - SERVICE_UNAVAILABLE
+              example: "INVALID_REQUEST"
+            message:
+              type: string
+              description: Human-readable error message
+              example: "Query text is required"
+            details:
+              type: object
+              description: Additional error context (varies by error type)
+              additionalProperties: true
+              example:
+                field: "query"
+                constraint: "required"

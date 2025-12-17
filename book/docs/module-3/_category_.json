@@ -1,0 +1,10 @@
+{
+  "label": "Module 3: Motion Planning and Control",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Explore motion planning algorithms and control systems that enable humanoid robots to move safely and efficiently. Topics include inverse kinematics, trajectory optimization, and collision avoidance."
+  },
+  "collapsible": true,
+  "collapsed": true
+}
