@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import styles from './ChatbotWidget.module.css';
 
 interface Citation {
@@ -20,17 +21,9 @@ interface ChatMessage {
   citations?: Citation[];
 }
 
-// Use globalThis to safely access environment variables in Docusaurus
-const getApiUrl = () => {
-  if (typeof window !== 'undefined') {
-    // @ts-ignore - Docusaurus injects this at build time
-    return window.REACT_APP_API_URL || 'http://localhost:8000';
-  }
-  return 'http://localhost:8000';
-};
-
 export const ChatbotWidget: React.FC = () => {
-  const API_URL = getApiUrl();
+  const { siteConfig } = useDocusaurusContext();
+  const API_URL = (siteConfig.customFields?.REACT_APP_API_URL as string) || 'http://localhost:8000';
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -48,7 +41,8 @@ export const ChatbotWidget: React.FC = () => {
   // Only run on client side
   useEffect(() => {
     setIsMounted(true);
-    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a valid UUID v4
+    const newSessionId = crypto.randomUUID();
     setSessionId(newSessionId);
   }, []);
 
@@ -108,7 +102,11 @@ export const ChatbotWidget: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        // Handle error detail being an object or string
+        const errorMsg = typeof errorData.detail === 'object'
+          ? errorData.detail?.message || JSON.stringify(errorData.detail)
+          : errorData.detail || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMsg);
       }
 
       const data: QueryResponse = await response.json();
