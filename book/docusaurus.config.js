@@ -27,7 +27,7 @@ const config = {
 
   // Custom fields for environment variables
   customFields: {
-    REACT_APP_API_URL: process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+    REACT_APP_API_URL: process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://akhizar-humanoid-robotics-rag-api.hf.space',
   },
 
   // Even if you don't use internalization, you can use this field to set useful
